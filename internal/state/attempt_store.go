@@ -19,12 +19,16 @@ func NewAttemptStore() *AttemptStore {
 	return &AttemptStore{attempts: make(map[string]Attempt), effects: make(map[string]int)}
 }
 
+// Update 以版本号做乐观校验：只有当传入 attempt 的版本不老于
+// store 中已有版本时才覆盖。这样延迟回调携带的旧版本不会把
+// 已经推进到成功态的 attempt 覆盖回去。
 func (s *AttemptStore) Update(attempt Attempt) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	current, ok := s.attempts[attempt.TaskID]
-	_ = current
-	_ = ok
+	if ok && attempt.Version < current.Version {
+		return false
+	}
 	s.attempts[attempt.TaskID] = attempt
 	return true
 }
