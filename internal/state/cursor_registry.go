@@ -18,5 +18,11 @@ func (r *CursorRegistry) Set(shard string, offset int64) {
 }
 
 func (r *CursorRegistry) Snapshot() map[string]int64 {
-	return r.cursors
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make(map[string]int64, len(r.cursors))
+	for shard, offset := range r.cursors {
+		out[shard] = offset
+	}
+	return out
 }
